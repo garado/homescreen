@@ -26,8 +26,8 @@
 #include "ftxui/screen/terminal.hpp"
 
 #include "task.hpp"
-#include "task.cpp" // girl what the fuck
-#include "ledger.cpp"
+#include "ledger.hpp"
+#include "schedule.hpp"
 
 using namespace ftxui;
 
@@ -35,20 +35,25 @@ int shift = 0;
 
 int main(void) {
   auto screen = ScreenInteractive::Fullscreen();
+  // screen.TrackMouse(false); // why is this not defined
 
   // init objects
   TaskData * task_d = new TaskData;
   TaskUI * task_ui = new TaskUI(task_d);
+  Ledger * ledger = new Ledger;
+  Schedule * schedule = new Schedule;
 
   int tab_index = 0;
   std::vector<std::string> tab_entries = {
-    "task"
+    "Schedule", "Taskwarrior", "Ledger",
   };
   auto tab_selection =
     Menu(&tab_entries, &tab_index, MenuOption::HorizontalAnimated());
   auto tab_content = Container::Tab(
     {
+      schedule->ui,
       task_ui->ui,
+      ledger->ui,
     },
     &tab_index);
 

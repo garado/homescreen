@@ -27,7 +27,7 @@ project(homescreen
   VERSION 1.0.0
 )
 
-add_executable(homescreen src/main.cpp)
+add_executable(homescreen src/main.cpp src/task.cpp src/ledger.cpp src/schedule.cpp)
 target_include_directories(homescreen PRIVATE src)
 
 target_link_libraries(homescreen

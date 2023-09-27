@@ -169,7 +169,6 @@ TaskUI::TaskUI(TaskData * td) {
   this->tasklist = Menu(&task_entries, &this->task_index);
 
   // Tasklist progress bar
-  this->progressbar = Slider("", &this->tasklist_progress, 0, 100, 1);
 
   // Assembly (Renderer)
   auto task_component = Container::Horizontal({
@@ -194,7 +193,7 @@ TaskUI::TaskUI(TaskData * td) {
           text(this->project_entries[this->project_index]) | bold,
           filler(),
         }) | flex,
-        this->progressbar->Render(),
+        gauge(40),
       }),
       separator(),
       (this->tasklist)->Render() | vscroll_indicator | frame,
