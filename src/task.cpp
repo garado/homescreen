@@ -89,16 +89,24 @@ void TaskData::parse_tasks () {
   pclose(p);
 
   this->data = json::parse(result);
-  for (auto it : this->data) {
+  for (const auto it : this->data) {
     this->add_tag_and_project(it["tags"][0], it["project"]);
   }
-
-  // for (const auto &tp: this->tags) {
-  //   cout << "----" << tp.first << "-----" << endl;
-  //   for (const auto p : tp.second) cout << p << endl;
-  // }
 }
 
+
+/* @function query
+ * @brief Return all tasks that match the tag and project */
+std::vector<std::string> TaskData::query(std::string tag, std::string project) {
+  // NOTE: is it better to do this or run another shell command? no idea
+  std::vector<std::string> ret;
+  for (const auto& t : this->data) {
+    if (t["tags"][0] == tag && t["project"] == project) {
+      ret.push_back(t["description"]);
+    }
+  }
+  return ret;
+}
 
 /* ▀█▀ ▄▀█ █▀ █▄▀    █░█ █ */
 /* ░█░ █▀█ ▄█ █░█    █▄█ █ */
@@ -110,29 +118,58 @@ const std::vector<std::string> entries = {
   "Project 4",
 };
 
+
+void TaskUI::update_tags_ui() {}
+
+void TaskUI::update_projects_ui() {
+  std::string t = this->tag_entries[this->tag_index];
+  this->project_index = 0;
+  this->project_entries.clear();
+  this->project_entries = this->td->extract_projects_for_tag(t);
+}
+
+void TaskUI::update_tasklist_ui() {
+  std::string t = this->tag_entries[this->tag_index];
+  std::string p = this->project_entries[this->project_index];
+  this->task_index = 0;
+  this->task_entries.clear();
+  this->task_entries = this->td->query(t, p);
+}
+
 /* @function TaskUI 
  * @brief ctor for TaskUI */
 TaskUI::TaskUI(TaskData * td) {
+  this->td = td;
+
   // Tags
   this->tag_entries = td->extract_tags();
-  this->tags = Radiobox(&tag_entries, &this->tag_index);
+  this->tags = Radiobox(&this->tag_entries, &this->tag_index);
+  this->tags |= CatchEvent([&](Event event) {
+    bool ret = false;
+    if (event == Event::Return) {
+      this->update_projects_ui();
+      this->update_tasklist_ui();
+    }
+    return ret;
+  });
 
   // Projects
   this->project_entries = td->extract_projects_for_tag(this->tag_entries[0]);
   this->projects = Radiobox(&this->project_entries, &this->project_index);
+  this->projects |= CatchEvent([&](Event event) {
+    bool ret = false;
+    if (event == Event::Return) {
+      this->update_tasklist_ui();
+    }
+    return ret;
+  });
 
   // Tasklist
-  std::vector<std::string> task_entries = {
-    "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", 
-    "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", 
-    "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", 
-    "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", 
-    "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", 
-    "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", 
-    "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", 
-    "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", "Test", 
-  };
-  this->tasklist = Radiobox(&entries, &this->task_index);
+  this->task_entries = td->query(this->tag_entries[0], this->project_entries[0]);
+  this->tasklist = Menu(&task_entries, &this->task_index);
+
+  // Tasklist progress bar
+  this->progressbar = Slider("", &this->tasklist_progress, 0, 100, 1);
 
   // Assembly (Renderer)
   auto task_component = Container::Horizontal({
@@ -140,16 +177,26 @@ TaskUI::TaskUI(TaskData * td) {
     projects,
     tasklist,
   });
-  
+
   this->ui = Renderer(task_component, [=] {
     auto tags_win = window(text(" Tags ") | bold,
-                             (this->tags)->Render() | vscroll_indicator | frame);
+                           (this->tags)->Render() | vscroll_indicator | frame);
 
     auto projects_win = window(text(" Projects ") | bold,
-                                (this->projects)->Render() | vscroll_indicator | frame);
+                               (this->projects)->Render() | vscroll_indicator | frame);
 
     auto tasklist_win = window(text(""), vbox({
-      text("Project name") | bold,
+      vbox({
+        hbox({
+          filler(),
+          text(this->tag_entries[this->tag_index]) | bold,
+          text(" - ") | bold,
+          text(this->project_entries[this->project_index]) | bold,
+          filler(),
+        }) | flex,
+        this->progressbar->Render(),
+      }),
+      separator(),
       (this->tasklist)->Render() | vscroll_indicator | frame,
     }) | flex);
 
@@ -157,8 +204,8 @@ TaskUI::TaskUI(TaskData * td) {
       vbox({
         tags_win | flex,
         projects_win | flex,
-      }) | flex,
-      tasklist_win | flex,
-    }) | flex;
+      }) | size(WIDTH, EQUAL, 25),
+      tasklist_win,
+    });
   });
 }
