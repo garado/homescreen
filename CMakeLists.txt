@@ -17,6 +17,11 @@ endif()
 
 # ------------------------------------------------------------------------------
 
+# json ----
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
+FetchContent_MakeAvailable(json)
+# ---------
+
 project(homescreen
   LANGUAGES CXX
   VERSION 1.0.0
@@ -29,14 +34,6 @@ target_link_libraries(homescreen
   PRIVATE ftxui::screen
   PRIVATE ftxui::dom
   PRIVATE ftxui::component # Not needed for this example.
+  PRIVATE nlohmann_json::nlohmann_json
 )
 
-if (EMSCRIPTEN) 
-  string(APPEND CMAKE_CXX_FLAGS " -s USE_PTHREADS") 
-  string(APPEND CMAKE_EXE_LINKER_FLAGS " -s ASYNCIFY") 
-  string(APPEND CMAKE_EXE_LINKER_FLAGS " -s PROXY_TO_PTHREAD") 
-
-  foreach(file "index.html" "run_webassembly.py")
-    configure_file("src/${file}" ${file})
-  endforeach(file)
-endif() 

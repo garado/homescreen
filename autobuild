@@ -1,5 +1,7 @@
 #!/bin/bash
 
+figlet "asdflkhasdf"
+mkdir -p build
 cd build
 cmake ..
 make -j
